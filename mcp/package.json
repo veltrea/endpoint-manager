@@ -1,0 +1,21 @@
+{
+  "name": "endpoint-manager-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Endpoint Manager — discover and use local AI endpoints from any MCP-compatible agent",
+  "type": "module",
+  "main": "server.ts",
+  "scripts": {
+    "start": "tsx server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

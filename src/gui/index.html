@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html class="dark" lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Endpoint Manager | Quantum Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "on-secondary-fixed": "#58007a",
+        "on-error": "#490006",
+        "tertiary-fixed-dim": "#e2e9ec",
+        "surface-container-highest": "#24252d",
+        "secondary-fixed-dim": "#eaaeff",
+        "tertiary-container": "#e5ecee",
+        "on-tertiary": "#596062",
+        "outline": "#75757b",
+        "error-container": "#9f0519",
+        "primary-fixed": "#00eefc",
+        "background": "#0d0e13",
+        "surface-container-high": "#1e1f26",
+        "on-error-container": "#ffa8a3",
+        "on-surface": "#f7f5fd",
+        "on-secondary": "#390050",
+        "inverse-primary": "#006a71",
+        "on-secondary-fixed-variant": "#8300b4",
+        "surface-container-lowest": "#000000",
+        "surface-container": "#181920",
+        "error": "#ff716c",
+        "on-primary-container": "#005359",
+        "surface-dim": "#0d0e13",
+        "surface-variant": "#24252d",
+        "outline-variant": "#47474e",
+        "secondary-fixed": "#f0c1ff",
+        "primary-container": "#00eefc",
+        "on-tertiary-fixed": "#454c4f",
+        "on-primary": "#005d63",
+        "inverse-surface": "#faf8ff",
+        "primary-dim": "#00deec",
+        "primary": "#8ff5ff",
+        "on-secondary-container": "#fff5fc",
+        "on-primary-fixed": "#003f43",
+        "tertiary-dim": "#e2e9ec",
+        "on-tertiary-fixed-variant": "#62696b",
+        "on-tertiary-container": "#51585a",
+        "surface-bright": "#2a2c34",
+        "tertiary": "#f4fafd",
+        "secondary": "#d575ff",
+        "inverse-on-surface": "#54545b",
+        "on-primary-fixed-variant": "#005e64",
+        "secondary-dim": "#b90afc",
+        "tertiary-fixed": "#f1f8fa",
+        "on-surface-variant": "#abaab1",
+        "on-background": "#f7f5fd",
+        "primary-fixed-dim": "#00deec",
+        "surface-tint": "#8ff5ff",
+        "surface-container-low": "#121319",
+        "error-dim": "#d7383b",
+        "surface": "#0d0e13",
+        "secondary-container": "#9800d0"
+      },
+      borderRadius: {
+        "DEFAULT": "0.125rem",
+        "lg": "0.25rem",
+        "xl": "0.5rem",
+        "full": "0.75rem"
+      },
+      fontFamily: {
+        "headline": ["Space Grotesk"],
+        "body": ["Manrope"],
+        "label": ["Inter"]
+      }
+    },
+  },
+}
+</script>
+<style>
+  body { font-family: 'Manrope', sans-serif; background-color: #0d0e13; color: #f7f5fd; }
+  .font-headline { font-family: 'Space Grotesk', sans-serif; }
+  .font-label { font-family: 'Inter', sans-serif; }
+  .glass-panel { background: rgba(36, 37, 45, 0.6); backdrop-filter: blur(20px); }
+  .kinetic-pulse { animation: kpulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  @keyframes kpulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  /* ホバー時に削除ボタンを表示 */
+  .node-card .delete-btn { opacity: 0; transition: opacity .15s; }
+  .node-card:hover .delete-btn { opacity: 1; }
+  /* モーダル */
+  #assign-modal { display: none; }
+  #assign-modal.open { display: flex; }
+</style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+<!-- ══════════════════════════════════════════
+     TopNavBar  (Stitch 準拠)
+══════════════════════════════════════════ -->
+<header class="w-full top-0 sticky bg-slate-950/80 backdrop-blur-xl shadow-[0_24px_48px_-12px_rgba(143,245,255,0.08)] z-50 flex-shrink-0">
+  <div class="flex justify-between items-center w-full px-10 h-16">
+    <div class="flex items-center gap-8">
+      <span class="text-xl font-bold tracking-tighter text-cyan-400 font-headline">Endpoint Manager</span>
+      <div class="hidden md:flex items-center gap-6">
+        <a class="text-cyan-400 border-b-2 border-cyan-400 pb-1 font-headline tracking-wider hover:text-cyan-300 transition-colors duration-300 active:scale-95 text-sm">Cluster Info</a>
+        <a class="text-slate-400 font-headline tracking-wider hover:text-cyan-300 transition-colors duration-300 active:scale-95 text-sm cursor-pointer" id="nav-logs-btn">Logs</a>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <!-- エンドポイント追加フォーム -->
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm select-none">add_link</span>
+        <input id="add-url" type="text" placeholder="http://192.168.1.x:1234/v1"
+          class="bg-surface-container-lowest border-none focus:ring-1 focus:ring-primary rounded-xl pl-9 pr-3 py-1.5 text-xs font-label tracking-widest text-on-surface w-64 placeholder:text-slate-600 transition-all outline-none"/>
+      </div>
+      <input id="add-label" type="text" placeholder="Label"
+        class="bg-surface-container-lowest border-none focus:ring-1 focus:ring-primary rounded-xl px-3 py-1.5 text-xs font-label text-on-surface w-24 placeholder:text-slate-600 outline-none"/>
+      <button id="btn-add"
+        class="px-4 py-1.5 bg-primary-container text-on-primary-container text-xs font-headline font-bold rounded-xl transition-all active:scale-95 tracking-wider">
+        ADD
+      </button>
+      <div class="flex items-center gap-3 ml-2">
+        <button id="btn-refresh" class="material-symbols-outlined text-slate-400 hover:text-cyan-300 transition-colors">refresh</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="flex flex-1 overflow-hidden">
+
+<!-- ══════════════════════════════════════════
+     SideNavBar  (Stitch 準拠)
+══════════════════════════════════════════ -->
+<aside class="h-full w-64 left-0 sticky bg-slate-900 flex flex-col py-8 gap-6 flex-shrink-0">
+  <!-- Core Engine -->
+  <div class="px-6 mb-2">
+    <div class="flex items-center gap-3">
+      <div id="side-dot" class="w-2 h-2 rounded-full bg-slate-600"></div>
+      <div>
+        <h2 class="text-lg font-black text-cyan-400 font-headline uppercase leading-none">Core Engine</h2>
+        <span class="text-[10px] font-label text-slate-500 tracking-widest" id="ws-status-text">Connecting...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar">
+    <a class="flex items-center gap-4 px-6 py-3 text-cyan-400 font-bold border-r-2 border-cyan-400 bg-slate-800/50 transition-all font-headline text-[11px] uppercase tracking-[0.05em]">
+      <span class="material-symbols-outlined text-lg" style="font-variation-settings:'FILL' 1">hub</span>
+      <span>Nodes</span>
+    </a>
+    <a id="btn-scan" class="flex items-center gap-4 px-6 py-3 text-slate-500 hover:bg-slate-800 hover:text-slate-300 transition-all font-headline text-[11px] uppercase tracking-[0.05em] cursor-pointer">
+      <span class="material-symbols-outlined text-lg">radar</span>
+      <span id="scan-label">Scan Network</span>
+    </a>
+
+    <!-- Role Assignments -->
+    <div class="mt-8 px-6">
+      <h3 class="text-[10px] font-label text-slate-600 tracking-[0.2em] uppercase mb-4">Role Assignments</h3>
+      <div id="roles-list" class="space-y-3"></div>
+    </div>
+  </nav>
+
+  <!-- Bottom -->
+  <div class="px-6 pt-4 border-t border-slate-800/50 flex flex-col gap-4">
+    <!-- カスタムロール追加 -->
+    <div class="flex gap-2">
+      <input id="new-role-name" type="text" placeholder="New role..."
+        class="flex-1 bg-surface-container-lowest border border-outline-variant/20 focus:ring-1 focus:ring-secondary rounded-lg px-2 py-1.5 text-[11px] font-label text-on-surface placeholder:text-slate-600 outline-none min-w-0"/>
+      <button id="btn-add-role"
+        class="px-2.5 py-1.5 border border-secondary/30 hover:border-secondary/60 text-secondary text-xs font-headline font-bold rounded-lg transition-all active:scale-95">+</button>
+    </div>
+    <button id="btn-scan-bottom"
+      class="w-full bg-primary-container text-on-primary-container py-2.5 rounded-lg font-headline text-[11px] uppercase tracking-widest font-bold active:scale-95 transition-transform">
+      Scan Network
+    </button>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════
+     Main Content Area  (Stitch 準拠)
+══════════════════════════════════════════ -->
+<main class="flex-1 bg-background flex flex-col overflow-hidden">
+  <div class="flex-1 p-10 overflow-y-auto no-scrollbar">
+    <!-- Page Header -->
+    <header class="mb-10 flex justify-between items-end">
+      <div>
+        <div class="font-label text-[10px] text-primary tracking-[0.3em] uppercase mb-1">Fleet Overview</div>
+        <h1 class="text-4xl font-headline font-bold text-on-surface tracking-tight">Active Nodes</h1>
+      </div>
+      <div class="flex gap-4">
+        <div class="glass-panel px-4 py-2 rounded-xl border border-outline-variant/10">
+          <span class="text-[10px] font-label text-slate-500 block">ONLINE</span>
+          <span id="stat-online" class="text-lg font-headline font-bold text-emerald-400">0</span>
+        </div>
+        <div class="glass-panel px-4 py-2 rounded-xl border border-outline-variant/10">
+          <span class="text-[10px] font-label text-slate-500 block">TOTAL</span>
+          <span id="stat-total" class="text-lg font-headline font-bold text-on-surface">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Node Grid -->
+    <div id="nodes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+
+  <!-- Log Strip -->
+  <div id="log"
+    class="h-20 flex-shrink-0 bg-slate-950 border-t border-outline-variant/10 px-6 py-2 overflow-y-auto no-scrollbar flex flex-col gap-0.5"></div>
+</main>
+
+</div><!-- /flex -->
+
+<!-- ══════════════════════════════════════════
+     Footer / Status Bar  (Stitch 準拠)
+══════════════════════════════════════════ -->
+<footer class="h-10 bg-slate-950 px-6 flex items-center justify-between border-t border-outline-variant/10 text-[10px] font-label tracking-widest uppercase flex-shrink-0">
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2">
+      <span id="footer-dot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+      <span id="footer-status" class="text-slate-500 font-bold">OFFLINE</span>
+    </div>
+    <div class="text-slate-500 flex items-center gap-2">
+      <span class="material-symbols-outlined text-xs">terminal</span>
+      <span id="footer-log">Waiting for connection...</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-6 text-slate-500">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-xs">analytics</span>
+      <span id="footer-nodes-info">NODES: —</span>
+    </div>
+    <div id="footer-clock" class="font-headline font-bold text-on-surface"></div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     Assign Modal
+══════════════════════════════════════════ -->
+<div id="assign-modal" class="fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="glass-panel border border-outline-variant/20 rounded-2xl p-6 w-80 flex flex-col gap-4 shadow-2xl">
+    <div class="flex items-center justify-between">
+      <h2 id="modal-title" class="font-headline font-bold text-on-surface text-sm">ロール割り当て</h2>
+      <button id="modal-close" class="material-symbols-outlined text-slate-400 hover:text-on-surface transition-colors text-lg">close</button>
+    </div>
+    <div>
+      <label class="text-[10px] font-label text-slate-500 tracking-widest uppercase block mb-1.5">Node</label>
+      <select id="modal-select"
+        class="w-full bg-surface-container-lowest border border-outline-variant/30 focus:ring-1 focus:ring-secondary rounded-lg px-3 py-2 text-xs font-label text-on-surface outline-none"></select>
+    </div>
+    <div class="flex gap-2 pt-1">
+      <button id="modal-apply"
+        class="flex-1 bg-primary-container text-on-primary-container py-2 rounded-lg font-headline text-xs font-bold uppercase tracking-widest active:scale-95 transition-transform">
+        適用
+      </button>
+      <button id="modal-unassign"
+        class="flex-1 py-2 rounded-lg border border-error/30 hover:border-error/60 text-error text-xs font-headline font-bold uppercase tracking-widest transition-all active:scale-95">
+        解除
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     Script
+══════════════════════════════════════════ -->
+<script>
+const WS_PORT = 3797;
+
+const PRESET_ROLES = [
+  { name: 'planner', desc: 'Orchestrates multi-node logic flows.', color: 'text-secondary'   },
+  { name: 'coder',   desc: 'Optimized for syntax and logic.',       color: 'text-cyan-400'    },
+  { name: 'fast',    desc: 'Low latency inference nodes.',           color: 'text-emerald-400' },
+];
+
+let ws        = null;
+let nodes     = new Map();
+let roles     = {};
+let roleNames = new Set(PRESET_ROLES.map(r => r.name));
+let cmdId     = 0;
+const pending = new Map();
+let modalRole = null;
+
+function nextId() { return String(++cmdId); }
+
+// ── Clock ──────────────────────────────────────────
+function tickClock() {
+  const s = new Date().toISOString().replace('T', ' // ').slice(0, 22) + ' UTC';
+  document.getElementById('footer-clock').textContent = s;
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ── WebSocket ──────────────────────────────────────
+function connect() {
+  ws = new WebSocket(`ws://127.0.0.1:${WS_PORT}`);
+  ws.addEventListener('open', () => {
+    setConnected(true);
+    send({ id: nextId(), type: 'list' }).then(data => {
+      nodes.clear();
+      for (const n of data) nodes.set(n.id, n);
+      return send({ id: nextId(), type: 'get_roles' });
+    }).then(roleMap => {
+      roles = roleMap;
+      for (const r of Object.keys(roles)) roleNames.add(r);
+      render();
+    });
+  });
+  ws.addEventListener('close', () => {
+    setConnected(false);
+    setTimeout(connect, 2000);
+  });
+  ws.addEventListener('message', ev => {
+    const msg = JSON.parse(ev.data);
+    if ('id' in msg) {
+      const p = pending.get(msg.id);
+      if (p) { pending.delete(msg.id); msg.ok ? p.resolve(msg.data) : p.reject(new Error(msg.error)); }
+    } else if ('event' in msg) {
+      handleEvent(msg);
+    }
+  });
+}
+
+function send(cmd) {
+  return new Promise((resolve, reject) => {
+    pending.set(cmd.id, { resolve, reject });
+    ws.send(JSON.stringify(cmd));
+  });
+}
+
+function setConnected(ok) {
+  const sideDot    = document.getElementById('side-dot');
+  const statusText = document.getElementById('ws-status-text');
+  const footerDot  = document.getElementById('footer-dot');
+  const footerSt   = document.getElementById('footer-status');
+
+  if (ok) {
+    sideDot.className  = 'w-2 h-2 rounded-full bg-primary kinetic-pulse';
+    statusText.textContent = `ws://127.0.0.1:${WS_PORT}`;
+    statusText.className   = 'text-[10px] font-label text-emerald-400 tracking-widest';
+    footerDot.className    = 'w-2 h-2 rounded-full bg-emerald-500';
+    footerSt.textContent   = 'CONNECTED';
+    footerSt.className     = 'text-emerald-500 font-bold';
+  } else {
+    sideDot.className  = 'w-2 h-2 rounded-full bg-slate-600';
+    statusText.textContent = 'Reconnecting...';
+    statusText.className   = 'text-[10px] font-label text-slate-500 tracking-widest';
+    footerDot.className    = 'w-2 h-2 rounded-full bg-slate-600';
+    footerSt.textContent   = 'OFFLINE';
+    footerSt.className     = 'text-slate-500 font-bold';
+  }
+}
+
+// ── Event Handler ──────────────────────────────────
+function handleEvent(msg) {
+  footerLog(msg.event);
+  logEntry(msg.event, msg.data);
+  switch (msg.event) {
+    case 'node_discovered':
+      nodes.set(msg.data.id, msg.data); renderNodes(); break;
+    case 'node_state_changed': {
+      const n = nodes.get(msg.data.nodeId);
+      if (n) { n.healthStatus = msg.data.state; renderNodes(); } break;
+    }
+    case 'models_updated': {
+      const n = nodes.get(msg.data.nodeId);
+      if (n) {
+        n.availableModels = msg.data.availableModels;
+        n.loadedModels    = msg.data.loadedModels;
+        renderNodes();
+      } break;
+    }
+    case 'node_removed':
+      nodes.delete(msg.data.nodeId); renderNodes(); break;
+    case 'scan_started':
+      setScanning(true); break;
+    case 'scan_completed':
+      for (const n of msg.data.nodes) nodes.set(n.id, n);
+      renderNodes();
+      setScanning(false); break;
+    case 'roles_changed':
+      roles = msg.data;
+      for (const r of Object.keys(roles)) roleNames.add(r);
+      renderRoles(); renderNodes(); break;
+  }
+}
+
+function setScanning(scanning) {
+  const label = document.getElementById('scan-label');
+  const btn   = document.getElementById('btn-scan');
+  const btn2  = document.getElementById('btn-scan-bottom');
+  label.textContent   = scanning ? 'Scanning...' : 'Scan Network';
+  btn.style.opacity   = scanning ? '0.5' : '';
+  btn2.textContent    = scanning ? 'Scanning...' : 'Scan Network';
+  btn2.disabled       = scanning;
+}
+
+function footerLog(msg) {
+  const el = document.getElementById('footer-log');
+  el.textContent = 'SYSTEM LOGS: ' + msg;
+}
+
+// ── Log Strip ──────────────────────────────────────
+function logEntry(event, data) {
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString('ja-JP');
+  const summary = data ? JSON.stringify(data).slice(0, 120) : '';
+  const div = document.createElement('div');
+  div.className = 'text-[10px] font-label text-slate-500 flex gap-2 shrink-0';
+  div.innerHTML = `<span class="text-slate-600">${ts}</span><span class="text-primary font-medium">${event}</span><span class="text-slate-600 truncate">${esc(summary)}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  while (el.children.length > 200) el.removeChild(el.firstChild);
+}
+
+// ══════════════════════════════════════════════════
+// Roles Sidebar
+// ══════════════════════════════════════════════════
+function renderRoles() {
+  const list = document.getElementById('roles-list');
+  list.innerHTML = '';
+
+  for (const roleName of roleNames) {
+    const assignedId   = roles[roleName] ?? null;
+    const assignedNode = assignedId ? nodes.get(assignedId) : null;
+    const preset       = PRESET_ROLES.find(r => r.name === roleName);
+    const colorClass   = preset?.color ?? 'text-slate-300';
+    const desc         = assignedNode
+      ? nodeLabel(assignedNode)
+      : (preset?.desc ?? '未割り当て');
+    const countLabel   = assignedId ? '1 ACTIVE' : '—';
+
+    const item = document.createElement('div');
+    item.className = 'group cursor-pointer';
+    item.addEventListener('click', () => openModal(roleName));
+
+    item.innerHTML = `
+      <div class="flex justify-between items-center mb-1">
+        <span class="text-[11px] font-bold ${colorClass} font-label">#${esc(roleName)}</span>
+        <span class="text-[10px] text-slate-500 font-label">${!preset ? `<button class="text-[9px] text-slate-600 hover:text-error opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation();removeRole('${esc(roleName)}')">✕</button>` : countLabel}</span>
+      </div>
+      <p class="text-[10px] text-slate-500 leading-tight truncate">${esc(desc)}</p>
+    `;
+    list.appendChild(item);
+  }
+}
+
+// ── Assign Modal ───────────────────────────────────
+function openModal(roleName) {
+  modalRole = roleName;
+  document.getElementById('modal-title').textContent = `#${roleName} — 割り当て`;
+
+  const sel = document.getElementById('modal-select');
+  sel.innerHTML = '<option value="">— 未割り当て —</option>';
+  const assignedId = roles[roleName] ?? '';
+  for (const node of [...nodes.values()].sort((a,b) => a.providerUrl.localeCompare(b.providerUrl))) {
+    const opt = document.createElement('option');
+    opt.value = node.id;
+    opt.textContent = nodeLabel(node) + ' (' + node.healthStatus + ')';
+    if (node.id === assignedId) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  document.getElementById('assign-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('assign-modal').classList.remove('open');
+  modalRole = null;
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('assign-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+document.getElementById('modal-apply').addEventListener('click', () => {
+  if (!modalRole) return;
+  const nodeId = document.getElementById('modal-select').value;
+  if (!nodeId) unassignRole(modalRole); else assignRole(modalRole, nodeId);
+  closeModal();
+});
+document.getElementById('modal-unassign').addEventListener('click', () => {
+  if (!modalRole) return;
+  unassignRole(modalRole);
+  closeModal();
+});
+
+function assignRole(roleName, nodeId) {
+  send({ id: nextId(), type: 'assign_role', role: roleName, endpointId: nodeId })
+    .catch(e => alert('割り当て失敗: ' + e.message));
+}
+function unassignRole(roleName) {
+  send({ id: nextId(), type: 'unassign_role', role: roleName })
+    .catch(e => alert('解除失敗: ' + e.message));
+}
+function removeRole(roleName) {
+  if (PRESET_ROLES.some(r => r.name === roleName)) return;
+  unassignRole(roleName);
+  roleNames.delete(roleName);
+  renderRoles();
+}
+
+document.getElementById('btn-add-role').addEventListener('click', () => {
+  const input = document.getElementById('new-role-name');
+  const name  = input.value.trim().toLowerCase().replace(/\s+/g, '_');
+  if (!name || roleNames.has(name)) return;
+  roleNames.add(name);
+  input.value = '';
+  renderRoles();
+});
+document.getElementById('new-role-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-add-role').click();
+});
+
+// ══════════════════════════════════════════════════
+// Node Grid
+// ══════════════════════════════════════════════════
+function nodeLabel(node) {
+  return node.label || node.providerUrl.replace(/^https?:\/\//, '').replace('/v1', '');
+}
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000)   return `${Math.floor(d/1000)}s ago`;
+  if (d < 3600000) return `${Math.floor(d/60000)}m ago`;
+  return new Date(ts).toLocaleTimeString('ja-JP');
+}
+
+const BORDER_COLOR = {
+  Online:      'border-emerald-400',
+  Offline:     'border-error/50',
+  Unreachable: 'border-slate-600',
+  RateLimited: 'border-yellow-500',
+};
+const DOT_COLOR = {
+  Online:      'bg-emerald-400',
+  Offline:     'bg-error',
+  Unreachable: 'bg-slate-500',
+  RateLimited: 'bg-yellow-500',
+};
+const HEALTH_TEXT_COLOR = {
+  Online:      'text-emerald-400',
+  Offline:     'text-error',
+  Unreachable: 'text-slate-500',
+  RateLimited: 'text-yellow-400',
+};
+
+function renderNodes() {
+  const grid = document.getElementById('nodes-grid');
+  const online = [...nodes.values()].filter(n => n.healthStatus === 'Online').length;
+  document.getElementById('stat-online').textContent = online;
+  document.getElementById('stat-total').textContent  = nodes.size;
+  document.getElementById('footer-nodes-info').textContent =
+    `NODES: ${online} ONLINE / ${nodes.size} TOTAL`;
+
+  if (nodes.size === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full text-center py-24 text-slate-600">
+        <span class="material-symbols-outlined text-5xl block mb-3 opacity-20">hub</span>
+        <p class="font-headline text-sm uppercase tracking-widest">No nodes detected</p>
+        <p class="font-label text-xs mt-1 opacity-50">Scan the network or add an endpoint manually</p>
+      </div>`;
+    appendPlaceholderCard(grid);
+    return;
+  }
+
+  // nodeId → ロール名[]
+  const rolesByNode = {};
+  for (const [role, nodeId] of Object.entries(roles)) {
+    (rolesByNode[nodeId] ??= []).push(role);
+  }
+
+  grid.innerHTML = '';
+  const sorted = [...nodes.values()].sort((a,b) => b.lastSeenAt - a.lastSeenAt);
+
+  for (const node of sorted) {
+    const hs         = node.healthStatus ?? 'Unreachable';
+    const borderCls  = BORDER_COLOR[hs] ?? 'border-slate-600';
+    const dotCls     = DOT_COLOR[hs] ?? 'bg-slate-500';
+    const textCls    = HEALTH_TEXT_COLOR[hs] ?? 'text-slate-500';
+    const pulseClass = hs === 'Online' ? 'kinetic-pulse' : '';
+    const dimClass   = (hs === 'Offline' || hs === 'Unreachable') ? 'opacity-60' : '';
+    const label      = nodeLabel(node);
+    const ts         = node.lastSeenAt ? timeAgo(node.lastSeenAt) : '—';
+    const myRoles    = rolesByNode[node.id] ?? [];
+    const allModels  = node.availableModels ?? [];
+    const loadedSet  = new Set(node.loadedModels ?? []);
+
+    // ロールチップ
+    const roleChips = myRoles.map(r =>
+      `<span class="px-2 py-0.5 bg-secondary-container/20 text-secondary rounded text-[9px] font-bold font-label tracking-tighter">#${esc(r)}</span>`
+    ).join('');
+
+    // モデルチップ (先頭3件)
+    const modelChips = allModels.slice(0, 3).map(m =>
+      `<span class="px-2 py-0.5 ${loadedSet.has(m) ? 'bg-emerald-900/30 text-emerald-400' : 'bg-slate-800 text-slate-400'} rounded text-[9px] font-bold font-label tracking-tighter">${esc(m)}</span>`
+    ).join('') + (allModels.length > 3 ? `<span class="px-2 py-0.5 bg-slate-800 text-slate-500 rounded text-[9px] font-label">+${allModels.length - 3}</span>` : '');
+
+    // PROBE ボタンスタイル
+    let probeBtnCls;
+    if (hs === 'Online')  probeBtnCls = 'bg-primary text-on-primary-container';
+    else if (hs === 'Offline') probeBtnCls = 'bg-error text-on-error';
+    else probeBtnCls = 'bg-surface-container-highest border border-primary/20 hover:border-primary/60 text-primary';
+
+    const card = document.createElement('div');
+    card.className = `node-card bg-surface-container-low rounded-xl p-6 border-l-4 ${borderCls} ${dimClass} group hover:bg-surface-container transition-colors relative overflow-hidden`;
+    card.draggable = true;
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('nodeId', node.id);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+
+    card.innerHTML = `
+      <div class="delete-btn absolute top-0 right-0 p-4">
+        <button onclick="removeNode('${esc(node.id)}')"
+          class="material-symbols-outlined text-slate-500 hover:text-error transition-colors">delete</button>
+      </div>
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h3 class="font-headline text-lg font-bold text-on-surface mb-1 pr-8">${esc(label)}</h3>
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full ${dotCls} ${pulseClass}"></span>
+            <span class="text-[10px] font-label ${textCls} font-bold uppercase tracking-widest">${hs}</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-label text-slate-500 block">ENDPOINT</span>
+          <span class="text-[11px] font-label text-on-surface-variant">${esc(node.providerUrl.replace(/^https?:\/\//,'').replace('/v1',''))}</span>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 mb-8 min-h-5">
+        ${roleChips}
+        ${modelChips || '<span class="text-[9px] text-slate-700 font-label">No models</span>'}
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-[10px] font-label text-slate-600 uppercase tracking-widest">${ts}</span>
+        <button onclick="probeNode('${esc(node.id)}')"
+          class="px-4 py-1.5 ${probeBtnCls} text-[10px] font-headline font-bold rounded-lg transition-all active:scale-95">PROBE</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+
+  appendPlaceholderCard(grid);
+}
+
+function appendPlaceholderCard(grid) {
+  const ph = document.createElement('div');
+  ph.className = 'border-2 border-dashed border-outline-variant/30 rounded-xl p-6 flex flex-col items-center justify-center gap-4 group cursor-pointer hover:border-primary/50 transition-all hover:bg-primary/5';
+  ph.innerHTML = `
+    <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center border border-outline-variant/20 group-hover:scale-110 transition-transform">
+      <span class="material-symbols-outlined text-primary text-3xl">add</span>
+    </div>
+    <div class="text-center">
+      <h3 class="font-headline text-sm font-bold text-on-surface uppercase tracking-widest">Add Endpoint</h3>
+      <p class="text-[10px] font-label text-slate-500 mt-1">Register a node manually</p>
+    </div>
+  `;
+  ph.addEventListener('click', () => document.getElementById('add-url').focus());
+  grid.appendChild(ph);
+}
+
+function render() { renderRoles(); renderNodes(); }
+
+// ── Node Actions ───────────────────────────────────
+function probeNode(id) {
+  send({ id: nextId(), type: 'probe', endpointId: id })
+    .then(n => { nodes.set(n.id, n); renderNodes(); })
+    .catch(e => alert('プローブ失敗: ' + e.message));
+}
+function removeNode(id) {
+  if (!confirm('このノードを削除しますか？')) return;
+  send({ id: nextId(), type: 'remove_endpoint', endpointId: id })
+    .then(() => { nodes.delete(id); render(); })
+    .catch(e => alert('削除失敗: ' + e.message));
+}
+
+// ── Toolbar ────────────────────────────────────────
+function doScan() {
+  send({ id: nextId(), type: 'scan' }).catch(console.error);
+}
+document.getElementById('btn-scan').addEventListener('click', doScan);
+document.getElementById('btn-scan-bottom').addEventListener('click', doScan);
+
+document.getElementById('btn-refresh').addEventListener('click', () => {
+  Promise.all([
+    send({ id: nextId(), type: 'list' }),
+    send({ id: nextId(), type: 'get_roles' }),
+  ]).then(([nodeList, roleMap]) => {
+    nodes.clear();
+    for (const n of nodeList) nodes.set(n.id, n);
+    roles = roleMap;
+    for (const r of Object.keys(roles)) roleNames.add(r);
+    render();
+  }).catch(console.error);
+});
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  const url   = document.getElementById('add-url').value.trim();
+  const label = document.getElementById('add-label').value.trim();
+  if (!url) return;
+  send({ id: nextId(), type: 'add_endpoint', url, label: label || undefined })
+    .then(node => {
+      nodes.set(node.id, node);
+      render();
+      document.getElementById('add-url').value   = '';
+      document.getElementById('add-label').value = '';
+    })
+    .catch(e => alert('追加失敗: ' + e.message));
+});
+document.getElementById('add-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-add').click();
+});
+
+connect();
+</script>
+</body>
+</html>

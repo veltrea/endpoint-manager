@@ -1,0 +1,8 @@
+node_modules/
+dist/
+src-tauri/target/
+*.log
+.DS_Store
+
+# デザイン素材（非公開）
+design/

@@ -1,0 +1,29 @@
+{
+  "name": "endpoint-manager",
+  "version": "0.1.0",
+  "description": "LM Studio endpoint discovery and management service with WebSocket API",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node --import tsx/esm src/index.ts",
+    "dev": "node --import tsx/esm --watch src/index.ts",
+    "test": "node --import tsx/esm --test test/**/*.test.ts",
+    "test:unit": "node --import tsx/esm --test test/unit/**/*.test.ts",
+    "test:integration": "node --import tsx/esm --test test/integration/**/*.test.ts",
+    "test:e2e": "node --import tsx/esm --test test/e2e/**/*.test.ts",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-shell": "^2.3.5",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
